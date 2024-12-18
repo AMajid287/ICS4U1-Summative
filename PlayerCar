@@ -1,4 +1,3 @@
-
 /* PlayerBall class defines behaviours for the player-controlled ball  
 
 child of Rectangle because that makes it easy to draw and check for collision
@@ -7,7 +6,6 @@ In 2D GUI, basically everything is a rectangle even if it doesn't look like it!
 */
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.ImageObserver;
 
 import javax.swing.ImageIcon;
 
@@ -16,15 +14,18 @@ public class PlayerCar extends Rectangle {
 	public int yVelocity;
 	public int xVelocity;
 	public final int SPEED = 5; // movement speed of ball
-	public static final int BALL_DIAMETER = 20; // size of ball
+	public static final int CAR_WIDTH = 90; // size of ball
+	public static final int CAR_HEIGHT = 160; // size of ball
 
-	private Image mainCarImage = new ImageIcon("playerCar.svg").getImage();;
+
+	public Image mainCarImage;
 
 	
 	// constructor creates ball at given location with given dimensions
 	public PlayerCar(int x, int y) {
-		super(x, y, BALL_DIAMETER, BALL_DIAMETER);
-		
+		super(x, y, CAR_WIDTH, CAR_HEIGHT);
+		mainCarImage = new ImageIcon("PlayerCar.png").getImage();
+
 	}
 
 	// called from GamePanel when any keyboard input is detected
@@ -105,11 +106,7 @@ public class PlayerCar extends Rectangle {
 
 	// called frequently from the GamePanel class
 	// draws the current location of the ball to the screen
-	public void draw(Graphics g) {
-		g.drawImage(mainCarImage, x, y, null);
-		g.draw();
-}
-
-
-
+	public void draw(Graphics g) {		
+		g.drawImage(mainCarImage, x, y, CAR_WIDTH, CAR_HEIGHT, null);
+	}
 }
