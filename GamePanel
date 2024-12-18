@@ -1,4 +1,3 @@
-
 /* GamePanel class acts as the main "game loop" - continuously runs the game and calls whatever needs to be called
 
 Child of JPanel because JPanel contains methods for drawing to the screen
@@ -11,6 +10,8 @@ Implements Runnable interface to use "threading" - let the game do two things at
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import java.util.Random;
+
 
 public class GamePanel extends JPanel implements Runnable, KeyListener {
 
@@ -21,33 +22,29 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 	public Thread gameThread;
 	public Image image;
 	public Graphics graphics;
-	public PlayerCar mainCar;
-	public Ball2 fallingBall;
-	public Scoreclass score;
-	private Image roadImage;
-	
+
+	public ScoreClass score;
+	public Menu mainMenu = new Menu();
+
+	public NPCCar npcCar; // creates npcCar object
+	public Image roadImage; // loads the image of the road in
+	public PlayerCar mainCar; // player car object (to be controlled by player)
+	public Rectangle player; // the hitbox of the car images are janky so an invisible rectangle is drawn on top of them to handle collision detection
+	public Rectangle npc; // 	"																											   "
+    //Random random = new Random();
+
 	public GamePanel() {
 
-		roadImage = new ImageIcon("RoadDesign.png").getImage();
+		roadImage = new ImageIcon("RoadDesign.png").getImage(); // assigns file path to the roadImage object
 
 		mainCar = new PlayerCar(GAME_WIDTH / 2, GAME_HEIGHT / 2); // create a player controlled ball, set start location
-																// to middle of screen
-		fallingBall = new Ball2((int) (Math.random() * GAME_WIDTH), 0); // create a ball, set start location to top of
-																		// screen and random x val
-		score = new Scoreclass(GAME_WIDTH / 2, 20); // crets a scroe class and sets the location of the text
+
+		npcCar = new NPCCar(235, 0); // create a ball, set start location to top of
+																	// screen and random x val
 
 		this.setFocusable(true); // make everything in this class appear on the screen
 		this.addKeyListener(this); // start listening for keyboard input
 
-		// add the MousePressed method from the MouseAdapter - by doing this we can
-		// listen for mouse input. We do this differently from the KeyListener because
-		// MouseAdapter has SEVEN mandatory methods - we only need one of them, and we
-		// don't want to make 6 empty methods
-		addMouseListener(new MouseAdapter() {
-			public void mousePressed(MouseEvent e) {
-				mainCar.mousePressed(e);
-			}
-		});
 		this.setPreferredSize(new Dimension(GAME_WIDTH, GAME_HEIGHT));
 
 		// make this class run at the same time as other classes (without this each
@@ -58,66 +55,73 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 		gameThread.start();
 	}
 
-	// paint is a method in java.awt library that we are overriding. It is a special
-	// method - it is called automatically in the background in order to update what
-	// appears in the window. You NEVER call paint() yourself
-	public void paint(Graphics g) {	
-		
-		Graphics2D g2D = (Graphics2D) g;
-		
-		g2D.drawImage(roadImage, 0, 0, GAME_WIDTH, GAME_HEIGHT, this);
-		draw(g); // draw all game elements on top of the background
+	// creates an enum for the game running condition
+	public static enum GAMESTATE {
+		MENU, GAME
+	};
+
+	// sets the menu variable to be true so game starts at main menu
+	public static GAMESTATE GameState = GAMESTATE.MENU;
+
+	public void paint(Graphics g) {
+
+		g.drawImage(roadImage, 0, 0, GAME_WIDTH, GAME_HEIGHT, this);
+		draw(g); // draws all game elements on top of the background
+
 	}
 
-	// call the draw methods in each class to update positions as things move
+	// updates positions as things move
 	public void draw(Graphics g) {
-		mainCar.draw(g);
-		fallingBall.draw(g);
-		score.draw(g);
+		if (GameState == GAMESTATE.GAME) {
+			mainCar.draw(g);
+			npcCar.draw(g);
+		}
+		// displays the main menu
+		else if (GameState == GAMESTATE.MENU) {
+			mainMenu.render(g);
+		}
 	}
 
-	// call the move methods in other classes to update positions
-	// this method is constantly called from run(). By doing this, movements appear
-	// fluid and natural. If we take this out the movements appear sluggish and
-	// laggy
+	// Updates positions
 	public void move() {
-		mainCar.move();
-		fallingBall.move();
+		if (GameState == GAMESTATE.GAME) {
+			mainCar.move();
+			npcCar.move();
+		}
 	}
 
 	// handles all collision detection and responds accordingly
 	public void checkCollision() {
 
+		 player = new Rectangle(mainCar.x, mainCar.y, PlayerCar.CAR_WIDTH, PlayerCar.CAR_HEIGHT);
+
+		 npc = new Rectangle(npcCar.x, npcCar.y, PlayerCar.CAR_WIDTH, PlayerCar.CAR_HEIGHT);
+
+
 		// force player to remain on screen
 		if (mainCar.y <= 0) {
 			mainCar.y = 0;
 		}
-
-		if (mainCar.y >= GAME_HEIGHT - PlayerCar.BALL_DIAMETER) {
-			mainCar.y = GAME_HEIGHT - PlayerCar.BALL_DIAMETER;
+		if (mainCar.y >= GAME_HEIGHT - PlayerCar.CAR_HEIGHT) {
+			mainCar.y = GAME_HEIGHT - PlayerCar.CAR_HEIGHT;
 		}
-
 		if (mainCar.x <= 0) {
 			mainCar.x = 0;
 		}
-
-		if (mainCar.x + PlayerCar.BALL_DIAMETER >= GAME_WIDTH) {
-			mainCar.x = GAME_WIDTH - PlayerCar.BALL_DIAMETER;
+		if (mainCar.x + PlayerCar.CAR_WIDTH >= GAME_WIDTH) {
+			mainCar.x = GAME_WIDTH - PlayerCar.CAR_HEIGHT;
 		}
-
 		// force the falling object to go back to top and a random x value
-		if (fallingBall.y == GAME_HEIGHT) {
-			fallingBall.y = 0;
-			fallingBall.x = (int) (Math.random() * 250);
-			Scoreclass.score++;
+		if (npcCar.y == GAME_HEIGHT) {
+			npcCar.x = NPCCar.pickRandLane() ;
+			npcCar.y = 0;
+			npcCar.pickRandCar();
 		}
-
-		if (mainCar.intersects(fallingBall)) {
-			Scoreclass.score = 0;
-			fallingBall.y = 0;
-			fallingBall.x = (int) (Math.random() * 250);
+		if (player.intersects(npc)) {
+			npcCar.x = NPCCar.pickRandLane() ;
+			npcCar.pickRandCar();
+			npcCar.y = 0;
 		}
-
 	}
 
 	// run() method is what makes the game continue running without end. It calls
@@ -150,17 +154,23 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 	// if a key is pressed, we'll send it over to the PlayerBall class for
 	// processing
 	public void keyPressed(KeyEvent e) {
+		// sends keyboard input on the main menu to the main menu class
+		if (GameState == GAMESTATE.MENU) {
+			mainMenu.keyPressed(e);
+		}
 		mainCar.keyPressed(e);
 	}
 
-	// if a key is released, we'll send it over to the PlayerBall class for
-	// processing
+	//if a key is released, we'll sends it over to the other classs for processing
 	public void keyReleased(KeyEvent e) {
+		// sends keyboard input on the main menu to the main menu class
+		if (GameState == GAMESTATE.MENU) {
+			mainMenu.keyReleased(e);
+		}
 		mainCar.keyReleased(e);
 	}
 
-	// left empty because we don't need it; must be here because it is required to
-	// be overridded by the KeyListener interface
+	// left empty because we don't need it; must be here because it is required to be overrided by the KeyListener interface
 	public void keyTyped(KeyEvent e) {
 
 	}
